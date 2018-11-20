@@ -297,8 +297,10 @@ def main():
                     meraki.result['changed'] = True
             else:
                 net = meraki.get_net(meraki.params['org_name'], meraki.params['net_name'], data=nets)
-                # meraki.fail_json(msg="HERE", net=net, payload=payload)
-                if meraki.is_update_required(net, payload):
+                optional_ignore = ['disableMyMerakiCom',
+                                   'disableRemoteStatusPage',
+                                   ]
+                if meraki.is_update_required(net, payload, optional_ignore=optional_ignore):
                     path = meraki.construct_path('update',
                                                  net_id=meraki.get_net_id(net_name=meraki.params['net_name'], data=nets)
                                                  )
