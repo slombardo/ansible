@@ -68,6 +68,12 @@ options:
             U[wired.meraki.com](wired.meraki.com))
         type: bool
         version_added: '2.7'
+    disable_remote_status_page:
+        description: >
+            - Disables access to the device status page (U(http://device LAN IP)).
+            - Can only be set if disableMyMerakiCom is set to false.
+        type: bool
+        version_added: '2.8'
 
 author:
     - Kevin Breit (@kbreit)
@@ -153,6 +159,11 @@ data:
         returned: success
         type: bool
         sample: true
+      disableRemoteStatusPage:
+        description: Disables access to the device status page.
+        returned: success
+        type: bool
+        sample: true
 '''
 
 import os
@@ -198,6 +209,7 @@ def main():
         net_name=dict(type='str', aliases=['name', 'network']),
         state=dict(type='str', choices=['present', 'query', 'absent'], default='present'),
         disable_my_meraki=dict(type='bool'),
+        disable_remote_status_page=dict(type='bool'),
     )
 
     # the AnsibleModule object will be our abstraction working with Ansible
@@ -226,6 +238,8 @@ def main():
             meraki.fail_json(msg='net_name or net_id is required for present or absent states')
     if meraki.params['net_name'] and meraki.params['net_id']:
         meraki.fail_json(msg='net_name and net_id are mutually exclusive')
+    if meraki.params['disable_my_meraki'] is False and meraki.params['disable_remote_status_page'] is True:
+        meraki.fail_json(msg='disable_my_meraki must be true when setting disable_remote_status_page')
 
     # if the user is working with this module in only check mode we do not
     # want to make any changes to the environment, just return the current
@@ -246,6 +260,8 @@ def main():
             payload['timeZone'] = meraki.params['timezone']
         if meraki.params['disable_my_meraki'] is not None:
             payload['disableMyMerakiCom'] = meraki.params['disable_my_meraki']
+        if meraki.params['disable_remote_status_page'] is not None:
+            payload['disableRemoteStatusPage'] = meraki.params['disable_remote_status_page']
 
     # manipulate or modify the state as needed (this is going to be the
     # part where your module will do what it needs to do)
