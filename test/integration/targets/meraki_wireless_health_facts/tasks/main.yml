@@ -1,0 +1,41 @@
+# Test code for the Meraki modules
+# Copyright: (c) 2018, Kevin Breit (@kbreit)
+
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+---
+- block:
+  # - name: Create wireless network
+  #   meraki_network:
+  #     auth_key: '{{ auth_key }}'
+  #     state: present
+  #     org_name: '{{test_org_name}}'
+  #     net_name: IntTestNetworkWireless
+  #     type: wireless
+  #     timezone: America/Chicago
+  #   delegate_to: localhost
+  #   register: create_net_wireless
+
+  - name: Query connectivity facts
+    meraki_wireless_health_facts:
+      auth_key: '{{ auth_key }}'
+      # org_name: '{{test_org_name}}'      
+      # net_name: IntTestNetworkWireless
+      org_id: 133277
+      net_id: N_624874448297673837
+      type: connectivity
+      start: 1514786400
+      end: 1542755268
+
+#############################################################################
+# Tear down starts here
+#############################################################################
+  # always:
+  # - name: Delete wireless networks
+  #   meraki_network:
+  #     auth_key: '{{ auth_key }}'
+  #     state: absent
+  #     org_name: '{{test_org_name}}'
+  #     net_name: 'IntTestNetworkWireless'
+  #   delegate_to: localhost
+  #   register: delete_all
+  #   ignore_errors: yes
