@@ -26,13 +26,74 @@
 
 - debug:
     var: snap_id
+    
+- name: Attach to existing Droplet by name
+  digital_ocean_volume:
+    oauth_token: "{{ digitalocean_oauth_token }}"
+    state: present
+    name: ansiblevolume
+    droplet_name: '{{droplet_name}}'
+  register: attach_droplet
+  when: droplet_name is defined
+  
+- debug:
+    var: attach_droplet
+  when: droplet_name is defined
 
-# - name: Delete volume
-#   digital_ocean_volume:
-#     oauth_token: "{{ digitalocean_oauth_token }}"
-#     state: absent
-#     name: ansiblevolume
-#   register: delete_vol
+- name: Detach Droplet
+  digital_ocean_volume:
+    oauth_token: "{{ digitalocean_oauth_token }}"
+    state: absent
+    name: ansiblevolume
+    droplet_name: '{{droplet_name}}'
+  register: detach_droplet
+  when: droplet_name is defined
 
-# - debug:
-#     var: delete_vol
+- debug:
+    var: detach_droplet
+  when: droplet_name is defined
+
+- name: Attach Droplet by ID
+  digital_ocean_volume:
+    oauth_token: "{{ digitalocean_oauth_token }}"
+    state: present
+    name: ansiblevolume
+    droplet_id: '{{droplet_id}}'
+  register: attach_droplet_id
+  when: droplet_id is defined
+
+- debug:
+    var: attach_droplet_id
+  when: droplet_id is defined
+
+- name: Detach Droplet by ID
+  digital_ocean_volume:
+    oauth_token: "{{ digitalocean_oauth_token }}"
+    state: absent
+    name: ansiblevolume
+    droplet_id: '{{droplet_id}}'
+  register: detach_droplet_id
+  when: droplet_id is defined
+
+- debug:
+    var: detach_droplet_id
+  when: droplet_id is defined
+  
+- name: Delete snapshot
+  digital_ocean_volume:
+    oauth_token: "{{ digitalocean_oauth_token }}"
+    state: absent
+    name: ansiblevolume
+    snapshot: yes
+  register: delete_snapshot
+    
+
+- name: Delete volume
+  digital_ocean_volume:
+    oauth_token: "{{ digitalocean_oauth_token }}"
+    state: absent
+    name: ansiblevolume
+  register: delete_vol
+
+- debug:
+    var: delete_vol

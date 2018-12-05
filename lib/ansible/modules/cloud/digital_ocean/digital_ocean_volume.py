@@ -115,6 +115,12 @@ def get_snaps(rest, vid):
     response = rest.get('volumes/{0}/snapshots'.format(vid))
     if response.status_code == 200:
         return response.json
+        
+        
+def get_droplets(rest):
+    response = rest.get_paginated_data(base_url='droplets?', data_key_name='droplets')
+    if response.status_code == 200:
+        return response.json
 
 
 def get_vid(name, volumes):
@@ -129,12 +135,19 @@ def get_sid(name, snaps):
         if name == snap['name']:
             return snap['id']
         return False
+        
+def get_did(name, droplets):
+    for droplet in droplets:
+        if name == droplet['name']:
+            return droplet['id']:
+        return False
 
 
 def core(module):
     name = module.params['name']
     vid = module.params['id']
     sid = module.params['snapshot_id']
+    did = module.params['droplet_id']
     rest = DigitalOceanHelper(module)
 
     if vid is None and name is not None:
@@ -142,10 +155,27 @@ def core(module):
     if module.params['snapshot']:
         if sid is None and name is not None:
             sid = get_sid(name, get_snaps(rest, vid)['snapshots'])
+    if module.parms['droplet_name']:
+        did = get_did(module.params['droplet_name'], get_droplets(rest)['droplets'])
 
     if module.params['state'] == 'present':
-        payload = {'name': name,
-                   }
+        if module.params['resize_gigabytes']:  # Resize volume
+            payload = {'type': 'resize',
+                       'size': module.params['resize_gigabytes'],
+                       }
+            response = rest.post('volumes/{0}/action'.format(vid), payload)
+        elif did is not None and did is not False:  # Attach volume to droplet
+            payload = {'type': 'attach',
+                       'droplet_id': did,
+                       }
+            response = rest.post('volumes/{0}/action'.format(vid), payload)
+        if response.status_code == 201:
+            module.exit_json(changed=True, data=response.json)
+        else:
+            module.fail_json(changed=False)
+        
+        # If there's no action to perform, keep going
+        payload = {'name': name}
         if module.params['snapshot'] is None or module.params['snapshot'] is False:  # Create volume
             payload['region'] = module.params['region']
             payload['size_gigabytes'] = module.params['size_gigabytes']
@@ -162,6 +192,15 @@ def core(module):
         else:
             module.fail_json(msg=response.json)
     elif module.params['state'] == 'absent':
+        if did is not None and did is not False:  # Detach volume from droplet
+            payload = {'type': 'detach',
+                       'droplet_id': did,
+                       }
+            response = rest.post('volumes/{0}/action'.format(vid), data=payload)
+            if response.status_code == 201:
+                module.exit_json(changed=True)
+            else:
+                module.fail_json(changed=False)
         if module.params['snapshot'] is None:  # Delete a volume
             response = rest.delete('volumes/{0}'.format(vid))
         else:  # Delete a snapshot
@@ -175,6 +214,7 @@ def main():
     argument_spec = DigitalOceanHelper.digital_ocean_argument_spec()
     argument_spec.update(
         size_gigabytes=dict(type='int'),
+        resize_gigabytes=dict(type='int'),
         name=dict(type='str'),
         description=dict(type='str'),
         id=dict(type='str'),
@@ -184,9 +224,18 @@ def main():
         filesystem_label=dict(type='str'),
         state=dict(type='str', choices=['absent', 'present'], default='present'),
         snapshot=dict(type='bool'),
+        droplet_name=dict(type='str'),
+        droplet_id=dict(type='str'),
     )
+    
+    mutually_exclusive = [['name', 'id'],
+                          ['droplet_name', 'droplet_id'],
+                          ['droplet_name', 'resize_size'],
+                          ['droplet_id', 'resize_size'],
+                          ]
 
-    module = AnsibleModule(argument_spec=argument_spec)
+    module = AnsibleModule(argument_spec=argument_spec,
+                           mututally_exclusive=mutually_exclusive)
 
     try:
         core(module)
