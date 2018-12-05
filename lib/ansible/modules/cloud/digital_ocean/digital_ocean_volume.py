@@ -24,11 +24,51 @@ version_added: "2.8"
 options:
   name:
     description:
-      - Name of project.
-      - Maximum of 255 characters.
+      - Name of volume or snapshot.
+      - Value is name of snapshot, if snapshot is true.
+  description:
+    description:
+      - Description of volume.
   id:
     description:
-      - ID number of project as assigned by DigitalOcean.
+      - ID number of volume as assigned by DigitalOcean.
+  size_gigabytes:
+    description:
+      - Number of gigabytes to allocate to volume.
+    type: int
+  resize_gigabytes:
+    description:
+      - Number of gigabytes to grow volume to.
+      - Volumes can only be increased in size.
+    type: int
+  region:
+    description:
+      - Digital Ocean region to create volume in.
+  snapshot:
+    description:
+      - If true, actions are performed against snapshot instead of volume.
+    type: bool
+  snapshot_id:
+    description:
+      - ID number of snapshot.
+  state:
+    description:
+      - Whether to create/modify, or delete a volume.
+      - Present will attach to a droplet if droplet information is provided. Absent will detach from a droplet if droplet information is provided.
+    choices: ['absent', 'present']
+    default: present
+  filesystem_type:
+    description:
+      - Filesystem of volume to create.
+  filesystem_label:
+    description:
+      - Filesystems labels for volume.
+  droplet_name:
+    description:
+      - Name of droplet to attach volume to or detach from.
+  droplet_id:
+    description:
+      - ID of droplet to attach volume to or detach from.
 
 extends_documentation_fragment: digital_ocean.documentation
 notes:
@@ -164,7 +204,7 @@ def core(module):
                        'size': module.params['resize_gigabytes'],
                        }
             response = rest.post('volumes/{0}/action'.format(vid), payload)
-        elif did is not None and did is not False:  # Attach volume to droplet
+        elif did is not True:  # Attach volume to droplet
             payload = {'type': 'attach',
                        'droplet_id': did,
                        }

@@ -86,7 +86,9 @@
     name: ansiblevolume
     snapshot: yes
   register: delete_snapshot
-    
+  
+- debug:
+    var: delete_snapshot
 
 - name: Delete volume
   digital_ocean_volume:
