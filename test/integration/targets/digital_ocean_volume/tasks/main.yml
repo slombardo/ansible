@@ -1,0 +1,38 @@
+---
+
+- name: Create volume
+  digital_ocean_volume:
+    oauth_token: "{{ digitalocean_oauth_token }}"
+    state: present
+    name: ansiblevolume
+    size_gigabytes: 1
+    description: Ansible test volume
+    region: nyc1
+  register: create_vol
+
+- debug:
+    var: create_vol
+
+- name: Convert to snapshot
+  digital_ocean_volume:
+    oauth_token: "{{ digitalocean_oauth_token }}"
+    state: present
+    name: ansiblevolume
+    snapshot: yes
+  register: create_snap
+
+- set_fact:
+    snap_id: '{{create_snap.snapshots.0.id}}'
+
+- debug:
+    var: snap_id
+
+# - name: Delete volume
+#   digital_ocean_volume:
+#     oauth_token: "{{ digitalocean_oauth_token }}"
+#     state: absent
+#     name: ansiblevolume
+#   register: delete_vol
+
+# - debug:
+#     var: delete_vol
