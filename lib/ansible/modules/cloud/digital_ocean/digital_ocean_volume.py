@@ -124,7 +124,7 @@ def get_vid(name, volumes):
     return False
 
 
-def get_snap_id(name, snaps):
+def get_sid(name, snaps):
     for snap in snaps:
         if name == snap['name']:
             return snap['id']
@@ -134,15 +134,19 @@ def get_snap_id(name, snaps):
 def core(module):
     name = module.params['name']
     vid = module.params['id']
+    sid = module.params['snapshot_id']
     rest = DigitalOceanHelper(module)
 
     if vid is None and name is not None:
         vid = get_vid(name, get_all_volumes(rest)['volumes'])
+    if module.params['snapshot']:
+        if sid is None and name is not None:
+            sid = get_sid(name, get_snaps(rest, vid)['snapshots'])
 
     if module.params['state'] == 'present':
         payload = {'name': name,
                    }
-        if module.params['snapshot_id'] is None:
+        if module.params['snapshot'] is None or module.params['snapshot'] is False:  # Create volume
             payload['region'] = module.params['region']
             payload['size_gigabytes'] = module.params['size_gigabytes']
             payload['description'] = module.params['description']
@@ -150,27 +154,21 @@ def core(module):
                 payload['filesystem_type'] = module.params['filesystem_type']
             if module.params['filesystem_label'] is not None:
                 payload['filesystem_label'] = module.params['filesystem_label']
-        else:
-            payload['snapshot_id'] = module.params['snapshot_id']
-        if module.params['snapshot'] is False or module.params['snapshot'] is None:
-            # module.fail_json(msg=payload)
             response = rest.post('volumes', data=payload)
         else:
-            # module.fail_json(msg=get_snaps(rest, vid))
-            response = rest.post('volumes/{0}/snapshots'.format(vid), data=payload) 
-        if response.status_code == 201:
+            response = rest.post('volumes/{0}/snapshots'.format(vid), data=payload)  # Create snapshot
+        if response.status_code == 201:  # TODO: Figure out code for not changed
             module.exit_json(changed=True, data=response.json)
         else:
             module.fail_json(msg=response.json)
     elif module.params['state'] == 'absent':
-        if module.params['snapshot_id'] is None:
+        if module.params['snapshot'] is None:  # Delete a volume
             response = rest.delete('volumes/{0}'.format(vid))
-        else:
-            response = rest.delete('snapshots/{0}'.format(vid))
+        else:  # Delete a snapshot
+            response = rest.delete('snapshots/{0}'.format(sid))
         if response.status_code == 204:
             module.exit_json(changed=True)
     module.exit_json(changed=False)
-
 
 
 def main():
