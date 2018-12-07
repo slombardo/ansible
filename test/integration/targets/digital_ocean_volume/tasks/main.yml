@@ -35,6 +35,17 @@
       oauth_token: "{{ digitalocean_oauth_token }}"
       state: present
       name: ansiblevolume
+      resize_gigabytes: 2
+    register: resize
+
+  - debug:
+      var: resize
+      
+  - name: Attach to existing Droplet by name
+    digital_ocean_volume:
+      oauth_token: "{{ digitalocean_oauth_token }}"
+      state: present
+      name: ansiblevolume
       region: nyc1
       droplet_name: '{{droplet_name}}'
     register: attach_droplet

@@ -82,42 +82,70 @@ requirements:
 
 
 EXAMPLES = '''
-- name: Create a new project
-  digital_ocean_project:
+- name: Create volume
+  digital_ocean_volume:
     oauth_token: abc123
     state: present
-    name: Web Frontends
-    description: Contains all corporate web frontends
-    purpose: Web application
-    environment: Production
+    name: ansiblevolume
+    size_gigabytes: 1
+    description: Ansible test volume
+    region: nyc1
 
-- name: Assign a resource to an existing project
-  digital_ocean_project:
+- name: Convert to snapshot
+  digital_ocean_volume:
     oauth_token: abc123
     state: present
-    name: Web Frontends
-    resources:
-      - "do:droplet:1"
-      - "do:volume:42"
+    name: ansiblevolume
+    snapshot: yes
+      
+- name: Attach to existing Droplet by name
+  digital_ocean_volume:
+    oauth_token: abc123
+    state: present
+    name: ansiblevolume
+    resize_gigabytes: 2
+      
+- name: Attach to existing Droplet by name
+  digital_ocean_volume:
+    oauth_token: abc123
+    state: present
+    name: ansiblevolume
+    region: nyc1
+    droplet_name: web_server
 
-- name: Assign a resource to the default project
-  digital_ocean_project:
+- name: Detach Droplet
+  digital_ocean_volume:
     oauth_token: abc123
-    state: present
-    default: yes
-    resources:
-      - "do:droplet:1"
-      - "do:volume:42"
+    state: absent
+    name: ansiblevolume
+    droplet_name: web_server
 
-- name: Modify properties of an existing project
-  digital_ocean_project:
+- name: Attach Droplet by ID
+  digital_ocean_volume:
     oauth_token: abc123
     state: present
-    name: Web Frontends
-    description: Contains all corporate public web frontends
-    purpose: Web application
-    environment: Production
-    default: no
+    name: ansiblevolume
+    droplet_id: 1234567890
+
+- name: Detach Droplet by ID
+  digital_ocean_volume:
+    oauth_token: abc123
+    state: absent
+    name: ansiblevolume
+    droplet_id: 1234567890
+
+- name: Delete snapshot
+  digital_ocean_volume:
+    oauth_token: abc123
+    state: absent
+    name: ansiblevolume
+    snapshot: yes
+
+- name: Delete volume
+  digital_ocean_volume:
+    oauth_token: abc123
+    state: absent
+    name: ansiblevolume
 '''
 
 
@@ -204,7 +232,7 @@ def core(module):
                        'size': module.params['resize_gigabytes'],
                        }
             response = rest.post('volumes/{0}/action'.format(vid), payload)
-            if response.status_code == 201:
+            if response.status_code == 202:
                 module.exit_json(changed=True, data=response.json)
             else:
                 module.fail_json(changed=False)
@@ -265,8 +293,8 @@ def core(module):
 def main():
     argument_spec = DigitalOceanHelper.digital_ocean_argument_spec()
     argument_spec.update(
-        size_gigabytes=dict(type='int'),
-        resize_gigabytes=dict(type='int'),
+        size_gigabytes=dict(type='int', aliases=['size']),
+        resize_gigabytes=dict(type='int', aliases=['resize']),
         name=dict(type='str'),
         description=dict(type='str'),
         id=dict(type='str'),
