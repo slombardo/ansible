@@ -115,6 +115,9 @@ def main():
     meraki = MerakiModule(module, function='wireless_health_facts')
     module.params['follow_redirects'] = 'all'
     payload = None
+    key_aliases = {'start': 't0',
+                   'end': 't1',
+                   }
  
     connectivity_net_urls = {'wireless_health_facts': '/networks/{net_id}/connectionStats'}
     connectivity_net_group_node_urls = {'wireless_health_facts': '/networks/{net_id}/devices/connectionStats'}
@@ -167,17 +170,12 @@ def main():
     if meraki.params['fields']:
         payload['fields'] = list_to_csv(meraki.params['fields'])
 
-    # meraki.fail_json(msg=list_to_csv(meraki.params['fields']))
-
     # manipulate or modify the state as needed (this is going to be the
     # part where your module will do what it needs to do)
 
     org_id = meraki.params['org_id']
     if not org_id and meraki.params['org_name']:
         org_id = meraki.get_org_id(meraki.params['org_name'])
-    # meraki.fail_json(msg=meraki.params['org_name'])
-    # meraki.fail_json(msg=org_id)
-    # meraki.fail_json(msg="Hey")
     net_id = meraki.params['net_id']
     if meraki.params['net_id'] is None:
         nets = meraki.get_nets(org_id=org_id)
@@ -191,8 +189,8 @@ def main():
             path = meraki.construct_path('connectivity_net_group_node', net_id=net_id)
         else:
             path = meraki.construct_path('connectivity_net', net_id=net_id)
-        # meraki.fail_json(msg="Payload", payload=payload, path=path)
-        # r = meraki.request(path, method='GET')
+        path = path + meraki.encode_url_params(meraki.construct_params_list(['start', 'end'],
+                                               aliases=key_aliases))
         r = meraki.request(path, method='GET', payload=json.dumps(payload))
         if meraki.status == 200:
             meraki.result['data'] = r
