@@ -86,6 +86,25 @@ options:
     serial_uplink:
         description:
         - Serial number of device to query uplink information from.
+    power_redundancy:
+        description:
+        - Sets behavior of secondary power supplies on supported devices.
+        choices: ['redundant', 'combined']
+        version_added: '2.8'
+    power_exceptions:
+        description:
+        - List of power redundancy configuration exceptions.
+        version_added: '2.8'
+        suboptions:
+            serial:
+                description:
+                - Serial number of MS switch to override power redundancy configuration.
+            version_added: '2.8'
+            power_redundancy:
+                description:
+                - Sets behavior of secondary power supplies on device.
+                choices: ['redundant', 'combined', 'useNetworkSetting']
+            version_added: '2.8'
 
 
 author:
@@ -238,6 +257,7 @@ def main():
                          lng=dict(type='float', aliases=['longitude']),
                          address=dict(type='str'),
                          move_map_marker=dict(type='bool'),
+                         power_redundancy=dict(type='str', choices=['redundant', 'combined'])
                          )
 
     # seed the result dict in the object
@@ -271,6 +291,7 @@ def main():
     bind_org_urls = {'device': '/organizations/{org_id}/claim'}
     update_device_urls = {'device': '/networks/{net_id}/devices/'}
     delete_device_urls = {'device': '/networks/{net_id}/devices/'}
+    update_switch_setting_urls = {'device': '/networks/{net_id}/switch/settings'}
 
     meraki.url_catalog['get_all'].update(query_urls)
     meraki.url_catalog['get_all_org'] = query_org_urls
@@ -279,6 +300,7 @@ def main():
     meraki.url_catalog['bind_org'] = bind_org_urls
     meraki.url_catalog['update'] = update_device_urls
     meraki.url_catalog['delete'] = delete_device_urls
+    meraki.url_catalog['ms_setting'] = update_switch_setting_urls
 
     payload = None
 
@@ -371,6 +393,17 @@ def main():
                     updated_device.append(meraki.request(path, method='PUT', payload=json.dumps(payload)))
                     meraki.result['data'] = updated_device
                     meraki.result['changed'] = True
+        elif meraki.params['power_redundancy']:
+            path = meraki.construct_path('ms_setting', net_id=net_id)
+            if meraki.params['power_redundancy'] == "redundant":
+                payload = {'useCombinedPower': true}
+            else:
+                payload = {'useCombinedPower': false}
+            current = meraki.request(path, method='GET')
+            if meraki.is_update_required(current, payload):
+                response = meraki.request(path, method='PUT', payload=json.dumps(payload))
+                meraki.result['data'] = response
+                meraki.result['changed'] = True
         else:
             if net_id is None:
                 device_list = get_org_devices(meraki, org_id)
