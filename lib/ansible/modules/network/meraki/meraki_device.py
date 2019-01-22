@@ -86,25 +86,32 @@ options:
     serial_uplink:
         description:
         - Serial number of device to query uplink information from.
-    power_redundancy:
+    switch_settings:
         description:
-        - Sets behavior of secondary power supplies on supported devices.
-        choices: ['redundant', 'combined']
-        version_added: '2.8'
-    power_exceptions:
-        description:
-        - List of power redundancy configuration exceptions.
+        - Show settings for switches on network.
         version_added: '2.8'
         suboptions:
-            serial:
-                description:
-                - Serial number of MS switch to override power redundancy configuration.
-            version_added: '2.8'
             power_redundancy:
                 description:
-                - Sets behavior of secondary power supplies on device.
-                choices: ['redundant', 'combined', 'useNetworkSetting']
-            version_added: '2.8'
+                - Sets behavior of secondary power supplies on supported devices.
+                - C(combined) setting requires firmware MS 11.0 or higher.
+                - C(combined) setting cannot be applied to templates or networks bound to a template.
+                choices: ['redundant', 'combined']
+                version_added: '2.8'
+            power_exceptions:
+                description:
+                - List of power redundancy configuration exceptions.
+                version_added: '2.8'
+                suboptions:
+                    serial:
+                        description:
+                        - Serial number of MS switch to override power redundancy configuration.
+                    version_added: '2.8'
+                    power_redundancy:
+                        description:
+                        - Sets behavior of secondary power supplies on device.
+                        choices: ['redundant', 'combined', 'useNetworkSetting']
+                    version_added: '2.8'
 
 
 author:
@@ -179,13 +186,27 @@ EXAMPLES = r'''
     org_name: YourOrg
     net_name: YourNet
     state: present
-    serial: '{{serial}}'
+    serial: def-123
     name: mr26
     address: 1060 W. Addison St., Chicago, IL
     lat: 41.948038
     lng: -87.65568
     tags: recently-added
   delegate_to: localhost
+
+- name: Set switch settings on entire network with exceptions
+meraki_device:
+  auth_key: abc123
+  org_name: YourOrg
+  net_name: YourNet
+  state: present
+  switch_settings:
+    power_redundancy: redundant
+    power_exceptions:
+      - serial: abc-123
+        power_redundancy: combined
+      - serial: def-456
+        power_redundancy: combined
 
 - name: Claim a deivce into a network.
   meraki_device:
@@ -242,6 +263,19 @@ def main():
 
     # define the available arguments/parameters that a user can pass to
     # the module
+    exceptions_spec = dict(serial=dict(type='str'),
+                           power_redundancy=dict(type='str', choices=['redundant',
+                                                                      'combined'])
+                           )
+
+    switch_settings_spec = dict(power_redundancy=dict(type='str', choices=['redundant',
+                                                                           'combined']),
+                                power_exceptions=dict(type='list',
+                                                      default=None,
+                                                      element='dict',
+                                                      options='exceptions_spec'),
+                                )
+
     argument_spec = meraki_argument_spec()
     argument_spec.update(state=dict(type='str', choices=['absent', 'present', 'query'], default='query'),
                          net_name=dict(type='str', aliases=['network']),
@@ -257,7 +291,7 @@ def main():
                          lng=dict(type='float', aliases=['longitude']),
                          address=dict(type='str'),
                          move_map_marker=dict(type='bool'),
-                         power_redundancy=dict(type='str', choices=['redundant', 'combined'])
+                         switch_settings=dict(type='dict', default=None, element='dict', options=switch_settings_spec),
                          )
 
     # seed the result dict in the object
@@ -358,6 +392,10 @@ def main():
                     if device['model'] == meraki.params['model']:
                         device_match.append(device)
                 meraki.result['data'] = device_match
+            elif meraki.params['switch_settings']:
+                path = meraki.construct_path('ms_setting', net_id=net_id)
+                settings = meraki.request(path, method='GET')
+                meraki.result['data'] = settings
             else:
                 path = meraki.construct_path('get_all', net_id=net_id)
                 request = meraki.request(path, method='GET')
@@ -393,12 +431,18 @@ def main():
                     updated_device.append(meraki.request(path, method='PUT', payload=json.dumps(payload)))
                     meraki.result['data'] = updated_device
                     meraki.result['changed'] = True
-        elif meraki.params['power_redundancy']:
+        elif meraki.params['switch_settings']:
             path = meraki.construct_path('ms_setting', net_id=net_id)
-            if meraki.params['power_redundancy'] == "redundant":
-                payload = {'useCombinedPower': true}
+            if meraki.params['switch_settings']['power_redundancy'] == "redundant":
+                payload = {'useCombinedPower': "true"}
             else:
-                payload = {'useCombinedPower': false}
+                payload = {'useCombinedPower': "false"}
+            if meraki.params['switch_settings']['power_exceptions']:
+                payload['power_exceptions'] = []
+                for exception in meraki.params['switch_settings']['power_exceptions']:
+                    payload['power_exceptions'].append({'serial': exception['serial'],
+                                                        'powerType': exception['power_redundancy'],
+                                                        })
             current = meraki.request(path, method='GET')
             if meraki.is_update_required(current, payload):
                 response = meraki.request(path, method='PUT', payload=json.dumps(payload))
