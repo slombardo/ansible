@@ -266,6 +266,7 @@ def main():
         if meraki.params['enable_remote_status_page'] is not None:
             if meraki.params['enable_remote_status_page'] is True:
                 payload['disableRemoteStatusPage'] = False
+                # meraki.fail_json(msg="Debug", payload=payload)
             else:
                 payload['disableRemoteStatusPage'] = True
 
