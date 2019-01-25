@@ -71,7 +71,7 @@ options:
     disable_remote_status_page:
         description:
             - Disables access to the device status page (U(http://device LAN IP)).
-            - Can only be set if C(disable_my_meraki:) is set to C(no).
+            - Can only be set if C(enable_my_meraki:) is set to C(yes).
         type: bool
         version_added: '2.8'
 
@@ -320,7 +320,6 @@ def main():
                     meraki.result['changed'] = True
             else:
                 net = meraki.get_net(meraki.params['org_name'], meraki.params['net_name'], data=nets)
-                # meraki.fail_json(msg="HERE", net=net, payload=payload)
                 if meraki.is_update_required(net, payload):
                     path = meraki.construct_path('update',
                                                  net_id=meraki.get_net_id(net_name=meraki.params['net_name'], data=nets)
