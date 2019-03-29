@@ -25,6 +25,25 @@
     register: create_net_no_org
     ignore_errors: yes
 
+  - name: Create network with type switch with check mode
+    meraki_network:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_name: IntTestNetworkSwitch
+      type: switch
+      timezone: America/Chicago
+    delegate_to: localhost
+    register: create_net_switch_check
+    check_mode: yes
+
+  - debug:
+      var: create_net_switch_check
+
+  - assert:
+      that:
+        - create_net_switch_check is not changed
+
   - name: Create network with type switch
     meraki_network:
       auth_key: '{{ auth_key }}'
@@ -67,6 +86,22 @@
       timezone: America/Chicago
     delegate_to: localhost
     register: create_net_wireless
+
+  - name: Create network with type wireless and check for idempotency with check mode
+    meraki_network:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_name: IntTestNetworkWireless
+      type: wireless
+      timezone: America/Chicago
+    delegate_to: localhost
+    register: create_net_wireless_idempotent_check
+    check_mode: yes
+
+  - assert:
+      that:
+        - create_net_wireless_idempotent_check is not changed
 
   - name: Create network with type wireless and check for idempotency
     meraki_network:
@@ -135,6 +170,26 @@
   - debug:
       msg: '{{create_net_tags}}'
 
+  - name: Modify network with check mode
+    meraki_network:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_name: IntTestNetworkTags
+      type: switch
+      timezone: America/Chicago
+      tags: 
+        - first_tag
+        - second_tag
+        - third_tag
+    delegate_to: localhost
+    register: create_net_modified_check
+    check_mode: yes
+
+  - assert:
+      that:
+        - create_net_modified_check is not changed
+
   - name: Modify network
     meraki_network:
       auth_key: '{{ auth_key }}'
@@ -149,6 +204,7 @@
         - third_tag
     delegate_to: localhost
     register: create_net_modified
+
 
   - name: Modify network with idempotency
     meraki_network:
@@ -231,6 +287,20 @@
     register: delete_all_no_org
     ignore_errors: yes
       
+  - name: Delete network by org ID with check mode
+    meraki_network:
+      auth_key: '{{ auth_key }}'
+      state: absent
+      org_id: '{{test_org_id}}'
+      net_name: IntTestNetworkSwitchOrgID
+    delegate_to: localhost
+    register: delete_net_org_id_check
+    check_mode: yes
+
+  - assert:
+      that:
+        - delete_net_org_id_check is not changed
+
   - name: Delete network by org ID
     meraki_network:
       auth_key: '{{ auth_key }}'

@@ -205,7 +205,7 @@ def main():
     # args/params passed to the execution, as well as if the module
     # supports check mode
     module = AnsibleModule(argument_spec=argument_spec,
-                           supports_check_mode=False,
+                           supports_check_mode=True,
                            )
 
     meraki = MerakiModule(module, function='network')
@@ -230,8 +230,6 @@ def main():
     # if the user is working with this module in only check mode we do not
     # want to make any changes to the environment, just return the current
     # state with no modifications
-    if module.check_mode:
-        return meraki.result
 
     # Construct payload
     if meraki.params['state'] == 'present':
@@ -273,6 +271,9 @@ def main():
                                                    )
     elif meraki.params['state'] == 'present':
         if net_id is None:
+            if meraki.module.check_mode is True:
+                meraki.result['data'] = payload
+                meraki.exit_json(**meraki.result)
             path = meraki.construct_path('create',
                                          org_id=org_id
                                          )
@@ -286,6 +287,9 @@ def main():
         else:
             net = meraki.get_net(meraki.params['org_name'], meraki.params['net_name'], data=nets)
             if meraki.is_update_required(net, payload):
+                if meraki.module.check_mode is True:
+                    meraki.result['data'] = net.update(payload)
+                    meraki.exit_json(**meraki.result)
                 path = meraki.construct_path('update',
                                              net_id=meraki.get_net_id(net_name=meraki.params['net_name'], data=nets)
                                              )
@@ -297,7 +301,9 @@ def main():
                     meraki.result['changed'] = True
             else:
                 net = meraki.get_net(meraki.params['org_name'], meraki.params['net_name'], data=nets)
-                # meraki.fail_json(msg="HERE", net=net, payload=payload)
+                if meraki.module.check_mode is True:
+                    meraki.result['data'] = net
+                    meraki.exit_json(**meraki.result)
                 if meraki.is_update_required(net, payload):
                     path = meraki.construct_path('update',
                                                  net_id=meraki.get_net_id(net_name=meraki.params['net_name'], data=nets)
@@ -310,6 +316,9 @@ def main():
                         meraki.result['changed'] = True
     elif meraki.params['state'] == 'absent':
         if is_net_valid(meraki, meraki.params['net_name'], nets) is True:
+            if meraki.module.check_mode is True:
+                meraki.result['data'] = {}
+                meraki.exit_json(**meraki.result)
             net_id = meraki.get_net_id(net_name=meraki.params['net_name'],
                                        data=nets)
             path = meraki.construct_path('delete', net_id=net_id)
