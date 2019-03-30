@@ -265,7 +265,7 @@ def main():
         else:
             if meraki.module.check_mode is True:
                 meraki.result['data'] = original
-                meraki.exit_json(**meraki.result)            
+                meraki.exit_json(**meraki.result)
 
     # in the event of a successful module execution, you will want to
     # simple AnsibleModule.exit_json(), passing the key/value results
