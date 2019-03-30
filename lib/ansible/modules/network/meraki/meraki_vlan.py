@@ -408,7 +408,7 @@ def main():
                 if meraki.module.check_mode is True:
                     original.update(payload)
                     meraki.result['data'] = original
-                    meraki.exit_json(**meraki.result)                
+                    meraki.exit_json(**meraki.result)
                 path = meraki.construct_path('update', net_id=net_id) + str(meraki.params['vlan_id'])
                 response = meraki.request(path, method='PUT', payload=json.dumps(payload))
                 meraki.result['changed'] = True
@@ -416,12 +416,12 @@ def main():
             else:
                 if meraki.module.check_mode is True:
                     meraki.result['data'] = original
-                    meraki.exit_json(**meraki.result)                
+                    meraki.exit_json(**meraki.result)
     elif meraki.params['state'] == 'absent':
         if is_vlan_valid(meraki, net_id, meraki.params['vlan_id']):
             if meraki.module.check_mode is True:
                 meraki.result['data'] = {}
-                meraki.exit_json(**meraki.result)                
+                meraki.exit_json(**meraki.result)
             path = meraki.construct_path('delete', net_id=net_id) + str(meraki.params['vlan_id'])
             response = meraki.request(path, 'DELETE')
             meraki.result['changed'] = True
