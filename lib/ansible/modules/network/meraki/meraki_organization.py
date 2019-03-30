@@ -214,7 +214,8 @@ def main():
             org = get_org(meraki, meraki.params['org_id'], orgs)
             if meraki.is_update_required(org, payload):
                 if meraki.module.check_mode is True:
-                    meraki.result['data'] = org.update(payload)
+                    org.update(payload)
+                    meraki.result['data'] = org
                     meraki.exit_json(**meraki.result)
                 response = meraki.request(meraki.construct_path('update',
                                                                 org_id=meraki.params['org_id']
