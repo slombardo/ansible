@@ -382,6 +382,9 @@ def main():
                    'applianceIp': meraki.params['appliance_ip'],
                    }
         if is_vlan_valid(meraki, net_id, meraki.params['vlan_id']) is False:
+            if meraki.module.check_mode is True:
+                meraki.result['data'] = payload
+                meraki.exit_json(**meraki.result)
             path = meraki.construct_path('create', net_id=net_id)
             response = meraki.request(path, method='POST', payload=json.dumps(payload))
             meraki.result['changed'] = True
@@ -402,12 +405,23 @@ def main():
                 payload['vpnNatSubnet'] = meraki.params['vpn_nat_subnet']
             ignored = ['networkId']
             if meraki.is_update_required(original, payload, optional_ignore=ignored):
+                if meraki.module.check_mode is True:
+                    original.update(payload)
+                    meraki.result['data'] = original
+                    meraki.exit_json(**meraki.result)                
                 path = meraki.construct_path('update', net_id=net_id) + str(meraki.params['vlan_id'])
                 response = meraki.request(path, method='PUT', payload=json.dumps(payload))
                 meraki.result['changed'] = True
                 meraki.result['data'] = response
+            else:
+                if meraki.module.check_mode is True:
+                    meraki.result['data'] = original
+                    meraki.exit_json(**meraki.result)                
     elif meraki.params['state'] == 'absent':
         if is_vlan_valid(meraki, net_id, meraki.params['vlan_id']):
+            if meraki.module.check_mode is True:
+                meraki.result['data'] = {}
+                meraki.exit_json(**meraki.result)                
             path = meraki.construct_path('delete', net_id=net_id) + str(meraki.params['vlan_id'])
             response = meraki.request(path, 'DELETE')
             meraki.result['changed'] = True
