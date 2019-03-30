@@ -288,7 +288,8 @@ def main():
             net = meraki.get_net(meraki.params['org_name'], meraki.params['net_name'], data=nets)
             if meraki.is_update_required(net, payload):
                 if meraki.module.check_mode is True:
-                    meraki.result['data'] = net.update(payload)
+                    net.update(payload)
+                    meraki.result['data'] = net
                     meraki.exit_json(**meraki.result)
                 path = meraki.construct_path('update',
                                              net_id=meraki.get_net_id(net_name=meraki.params['net_name'], data=nets)
