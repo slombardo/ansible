@@ -1,17 +1,17 @@
 ---
 - block:
-  # - name: Claim a device into an organization
-  #   meraki_device:
-  #     auth_key: '{{auth_key}}'
-  #     org_name: '{{test_org_name}}'
-  #     serial: '{{serial}}'
-  #     state: present
-  #   delegate_to: localhost
-  #   register: claim_device_org
+  - name: Claim a device into an organization
+    meraki_device:
+      auth_key: '{{auth_key}}'
+      org_name: '{{test_org_name}}'
+      serial: '{{serial}}'
+      state: present
+    delegate_to: localhost
+    register: claim_device_org
 
-  # - assert:
-  #     that:
-  #       - claim_device_org.changed == true
+  - assert:
+      that:
+        - claim_device_org.changed == true
 
   - name: Query status of all devices in an organization
     meraki_device:
@@ -192,6 +192,45 @@
   - assert:
       that:
         - update_device_idempotent.changed == False
+
+  - name: Reboot a device in check mode
+    meraki_device:
+      auth_key: '{{auth_key}}'
+      org_name: '{{test_org_name}}'
+      net_name: '{{test_net_name}}'
+      serial: '{{serial}}'
+      reboot: yes
+      state: present
+    delegate_to: localhost
+    register: reboot_check
+    check_mode: yes
+
+  - debug:
+      var: reboot_check
+
+  - assert:
+      that:
+        - reboot_check is not changed
+        - reboot_check.data.success == True
+
+  - name: Reboot a device
+    meraki_device:
+      auth_key: '{{auth_key}}'
+      org_name: '{{test_org_name}}'
+      net_name: '{{test_net_name}}'
+      serial: '{{serial}}'
+      state: present
+      reboot: yes
+    delegate_to: localhost
+    register: reboot
+
+  - debug:
+      var: reboot
+
+  - assert:
+      that:
+        - reboot is changed
+        - reboot.data.success == True
 
   always:
   - name: Remove a device from a network

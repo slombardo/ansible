@@ -244,6 +244,7 @@ def main():
                          address=dict(type='str'),
                          move_map_marker=dict(type='bool'),
                          note=dict(type='str'),
+                         reboot=dict(type='bool'),
                          )
 
     # seed the result dict in the object
@@ -260,6 +261,9 @@ def main():
     # supports check mode
     module = AnsibleModule(argument_spec=argument_spec,
                            supports_check_mode=True,
+                           # required_if=[
+                           #     ['reboot', True, ['serial']],
+                           # ],
                            )
     meraki = MerakiModule(module, function='device')
 
@@ -277,6 +281,7 @@ def main():
     bind_org_urls = {'device': '/organizations/{org_id}/claim'}
     update_device_urls = {'device': '/networks/{net_id}/devices/'}
     delete_device_urls = {'device': '/networks/{net_id}/devices/'}
+    reboot_urls = {'device': '/networks/{net_id}/devices/{serial}/reboot'}
 
     meraki.url_catalog['get_all'].update(query_urls)
     meraki.url_catalog['get_all_org'] = query_org_urls
@@ -285,15 +290,9 @@ def main():
     meraki.url_catalog['bind_org'] = bind_org_urls
     meraki.url_catalog['update'] = update_device_urls
     meraki.url_catalog['delete'] = delete_device_urls
+    meraki.url_catalog['reboot'] = reboot_urls
 
     payload = None
-
-    # if the user is working with this module in only check mode we do not
-    # want to make any changes to the environment, just return the current
-    # state with no modifications
-    # FIXME: Work with Meraki so they can implement a check mode
-    if module.check_mode:
-        meraki.exit_json(**meraki.result)
 
     # execute checks for argument completeness
 
@@ -389,6 +388,17 @@ def main():
                     meraki.result['data'] = created_device
                     meraki.result['changed'] = True
             else:
+                if meraki.params['reboot'] is True:
+                    if meraki.module.check_mode is True:
+                        meraki.result['data'] = {'success': True}
+                        meraki.result['changed'] = False
+                        meraki.exit_json(**meraki.result)
+                    meraki.fail_json(msg=meraki.construct_path('reboot', net_id=net_id, custom={'serial': meraki.params['serial']}))
+                    path = meraki.construct_path('reboot', net_id=net_id, custom={'serial': meraki.params['serial']})
+                    response = meraki.request(path, method='POST')
+                    meraki.fail_json(msg="Here")
+                    meraki.result['data'] = response
+                    meraki.result['changed'] = True
                 query_path = meraki.construct_path('get_all', net_id=net_id)
                 device_list = meraki.request(query_path, method='GET')
                 if is_device_valid(meraki, meraki.params['serial'], device_list) is False:
