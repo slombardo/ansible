@@ -27,6 +27,7 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.meraki.meraki import MerakiModule, meraki_argument_spec
 from ansible.module_utils.six import PY2, PY3
 from ansible.module_utils._text import to_native, to_bytes
+from ansible.module_utils.urls import fetch_url
 from units.modules.utils import set_module_args
 
 fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures')
@@ -35,7 +36,6 @@ testcase_data = {
     "params": {'orgs': ['orgs.json'],
                }
 }
-
 
 def load_fixture(name):
     path = os.path.join(fixture_path, name)
@@ -53,7 +53,6 @@ def load_fixture(name):
 
     fixture_data[path] = data
     return data
-
 
 @pytest.fixture(scope="module")
 def module():
@@ -73,9 +72,10 @@ def mocked_fetch_url():
                 }
     return (None, info)
 
-
-@mock.patch('ansible.module_utils.urls.fetch_url', side_effect=mocked_fetch_url)
 def test_fetch_url_404(module, mocker):
+    mocker.patch('ansible.module_utils.urls.fetch_url')
+    mocker.side_effect = mocked_fetch_url
+    
     url = 'https://api.meraki.com/404'
     data = module.request(url, method='GET')
     print(data)
