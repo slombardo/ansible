@@ -27,7 +27,6 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.meraki.meraki import MerakiModule, meraki_argument_spec
 from ansible.module_utils.six import PY2, PY3
 from ansible.module_utils._text import to_native, to_bytes
-from ansible.module_utils.urls import fetch_url
 from units.modules.utils import set_module_args
 
 fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures')
